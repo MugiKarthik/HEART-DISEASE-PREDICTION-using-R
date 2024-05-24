@@ -1,0 +1,91 @@
+data<-read.csv(file.choose())
+
+data
+
+head(data)
+
+dim(data)
+
+names <- c("Age",
+           "Sex",
+           "Chest_Pain_Type",
+           "Resting_Blood_Pressure",
+           "Serum_Cholesterol",
+           "Fasting_Blood_Sugar",
+           "Resting_ECG",
+           "Max_Heart_Rate_Achieved",
+           "Exercise_Induced_Angina",
+           "ST_Depression_Exercise",
+           "Peak_Exercise_ST_Segment",
+           "Num_Major_Vessels_Flouro",
+           "Thalassemia",
+           "Diagnosis_Heart_Disease")
+colnames(data) <- names
+
+is.na(data)
+which(is.na(data))
+
+library(dplyr)
+library(tidyverse)
+data %>% 
+  drop_na() %>%
+  group_by(Thalassemia) %>%
+  count()
+
+data %>% 
+  drop_na() %>%
+  group_by(Num_Major_Vessels_Flouro) %>%
+  count()
+
+glimpse(data)
+
+data<-data %>% 
+    mutate_at(c("Resting_ECG", 
+                "Fasting_Blood_Sugar", 
+                "Sex", 
+                "Diagnosis_Heart_Disease", 
+                "Exercise_Induced_Angina",
+                "Peak_Exercise_ST_Segment", 
+                "Chest_Pain_Type",
+"Thalassemia"), as_factor)%>%
+filter(Thalassemia != 0) %>%
+filter(Num_Major_Vessels_Flouro != 4) %>%
+    select(Age, 
+           Resting_Blood_Pressure, 
+           Serum_Cholesterol, 
+           Max_Heart_Rate_Achieved, 
+           ST_Depression_Exercise,
+           Num_Major_Vessels_Flouro,
+           everything())
+
+glimpse(data)
+
+data<-data %>%
+mutate(Diagnosis_Heart_Disease= recode_factor(Diagnosis_Heart_Disease, `0` = "absent", 
+                                  `1` = "present" ),
+         Sex = recode_factor(Sex, `0` = "female", 
+                                  `1` = "male" ),
+         Chest_Pain_Type = recode_factor(Chest_Pain_Type, `0` = "typical",   
+                                                          `1` = "atypical",
+                                                          `2` = "non-angina", 
+                                                          `3` = "asymptomatic"),
+         Fasting_Blood_Sugar = recode_factor(Fasting_Blood_Sugar, `0` = "<= 120 mg/dl", 
+                                                                  `1` = "> 120 mg/dl"),
+         Resting_ECG = recode_factor(Resting_ECG, `0` = "normal",
+                                                  `1` = "ST-T abnormality",
+                                                  `2` = "LV hypertrophy"),
+         Exercise_Induced_Angina = recode_factor(Exercise_Induced_Angina, `0` = "no",
+                                                                          `1` = "yes"),
+         Peak_Exercise_ST_Segment = recode_factor(Peak_Exercise_ST_Segment, `2` = "up-sloaping",
+                                                                            `1` = "flat",
+                                                                            `0` = "down-sloaping"),
+         Thalassemia = recode_factor(Thalassemia, `2` = "normal",
+                                                  `1` = "fixed defect",
+                                                  `3` = "reversible defect")) %>%
+select(Age, 
+           Resting_Blood_Pressure, 
+           Serum_Cholesterol, 
+           Max_Heart_Rate_Achieved, 
+           ST_Depression_Exercise,
+           Num_Major_Vessels_Flouro,
+           everything())
