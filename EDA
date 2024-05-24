@@ -1,0 +1,91 @@
+Univariate Analysis
+
+categorical variable
+library(scales)
+ggplot(data, aes(x = Sex)) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25) +
+  scale_y_continuous(labels = percent) +
+  labs(title = "Sex distribution", y = "Percent", x = "Sex")
+
+continuous variable
+data$CI_Age[data$Age>=70] <-"70-80"
+data$CI_Age[data$Age>=60 &data$Age<70] <-"60-69"
+data$CI_Age[data$Age>=50 &data$Age<60] <-"50-59"
+data$CI_Age[data$Age>=40 &data$Age<50] <-"40-49"
+data$CI_Age[data$Age<40] <-"29-40"
+
+data$CI_STDE[data$ST_Depression_Exercise>=5] <-"5-6.2"
+data$CI_STDE[data$ST_Depression_Exercise>=4&data$ST_Depression_Exercise<5] <-"4-4.9"
+data$CI_STDE[data$ST_Depression_Exercise>=3 &data$ST_Depression_Exercise<4] <-"3-3.9"
+data$CI_STDE[data$ST_Depression_Exercise>=2 &data$ST_Depression_Exercise<3] <-"2-2.9"
+data$CI_STDE[data$ST_Depression_Exercise>=1&data$ST_Depression_Exercise<2] <-"1-1.9"
+data$CI_STDE[data$ST_Depression_Exercise<1] <-"0-0.9"
+
+data$CI_MHRA[data$Max_Heart_Rate_Achieved>=195] <-"195-220"
+data$CI_MHRA[data$Max_Heart_Rate_Achieved>=170&data$Max_Heart_Rate_Achieved<195] <-"170-194"
+data$CI_MHRA[data$Max_Heart_Rate_Achieved>=145 &data$Max_Heart_Rate_Achieved<170] <-"145-169"
+data$CI_MHRA[data$Max_Heart_Rate_Achieved>=120 &data$Max_Heart_Rate_Achieved<145] <-"120-144"
+data$CI_MHRA[data$Max_Heart_Rate_Achieved>=95&data$Max_Heart_Rate_Achieved<120] <-"095-119"
+data$CI_MHRA[data$Max_Heart_Rate_Achieved<95] <-"070-094"
+
+data$CI_SC[data$Serum_Cholesterol>=525] <-"525-575"
+data$CI_SC[data$Serum_Cholesterol>=475&data$Serum_Cholesterol<525] <-"475-524"
+data$CI_SC[data$Serum_Cholesterol>=425 &data$Serum_Cholesterol<475] <-"425-474"
+data$CI_SC[data$Serum_Cholesterol>=375 &data$Serum_Cholesterol<425] <-"375-424"
+data$CI_SC[data$Serum_Cholesterol>=325&data$Serum_Cholesterol<375] <-"325-374"
+data$CI_SC[data$Serum_Cholesterol>=275&data$Serum_Cholesterol<325] <-"275-324"
+data$CI_SC[data$Serum_Cholesterol>=225&data$Serum_Cholesterol<275] <-"225-274"
+data$CI_SC[data$Serum_Cholesterol>=175&data$Serum_Cholesterol<225] <-"175-224"
+data$CI_SC[data$Serum_Cholesterol<175] <-"125-174"
+
+data$CI_RBP[data$Resting_Blood_Pressure>=190] <-"190-210"
+data$CI_RBP[data$Resting_Blood_Pressure>=170&data$Resting_Blood_Pressure<190] <-"170-189"
+data$CI_RBP[data$Resting_Blood_Pressure>=150 &data$Resting_Blood_Pressure<170] <-"150-169"
+data$CI_RBP[data$Resting_Blood_Pressure>=130&data$Resting_Blood_Pressure<150] <-"130-149"
+data$CI_RBP[data$Resting_Blood_Pressure>=110&data$Resting_Blood_Pressure<130] <-"110-129"
+data$CI_RBP[data$Resting_Blood_Pressure<110] <-"090-109"
+
+
+ST_Depression_Exercise=0-6.2
+Max_Heart_Rate_Achieved=71-202
+Serum_Cholesterol=126-564
+Resting_Blood_Pressure=94-200
+
+
+ggplot(data, aes(x = CI_Age)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)),width =1) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25) +
+  scale_y_continuous(labels = percent) +
+  labs(title = "Sex distribution", y = "Percent", x = "Sex")
+
+
+bivariant
+categorical variable
+ggplot(data, aes(x = Sex,fill=Diagnosis_Heart_Disease)) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25) +
+  scale_y_continuous(labels = percent) +
+  labs(title = "Sex distribution", y = "Percent", x = "Sex")
+
+continuous variable
+ggplot(data, aes(x = CI_Age,fill=Diagnosis_Heart_Disease)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)),width =1) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.15) +
+  scale_y_continuous(labels = percent) +
+  labs(title = "Sex distribution", y = "Percent", x = "Sex")
+
+boxplot
+summary(data$Age[161:296])
+ggplot(data, aes(x=Diagnosis_Heart_Disease,y=Resting_Blood_Pressure,color=Diagnosis_Heart_Disease))+geom_boxplot()
+
+violin
+library(deldir)
+library(Hmisc)
+p=ggplot(data, aes(x=Diagnosis_Heart_Disease,y=Resting_Blood_Pressure,color=Diagnosis_Heart_Disease))+
+geom_violin(trim=FALSE)
+p+stat_summary(fun.data=mean_sdl, mult=1,geom="pointrange", color="black")
+
+pair plots
+library(GGally)
+ggpairs(data,columns = 1:6,aes(color =Diagnosis_Heart_Disease)) 
