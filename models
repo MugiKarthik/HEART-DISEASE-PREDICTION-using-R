@@ -1,0 +1,153 @@
+data<-read.csv(file.choose())
+
+data
+library(tidymodels)
+#set seed for repeatability
+set.seed(1300)
+#create split object 
+train_test_split <- data %>% initial_split(prop = .8, strata = "Diagnosis_Heart_Disease")
+#pipe split obj to training() fcn to create training set
+train_tbl <- train_test_split %>% training()
+#pipe split obj to testing() fcn to create test set
+test_tbl <- train_test_split %>% testing()
+
+
+nrow(train_tbl)
+
+nrow(test_tbl)
+
+#Set up recipe (use training data here to avoid leakage)
+the_recipe <- recipe(Diagnosis_Heart_Disease ~ . , data = train_tbl) %>%
+              #[Processing Step 1]
+              #[Processing Step 2]
+              prep(train_tbl, retain = TRUE)
+#Apply recipe to training data to create processed training_data_obj (already populated in the recipe object)
+train_processed_data <- juice(the_recipe)
+#Apply recipe to test data to create processed test_data_obj
+test_processed_data <- bake(the_recipe, new_data = test_tbl)
+
+#Set up and train the model using processed training_data_obj
+set.seed(101)
+log_regr_hd_model <- logistic_reg(mode = "classification") %>%
+                     set_engine("glm") %>% 
+                     fit(Diagnosis_Heart_Disease ~ ., data = train_processed_data)
+#Take a look at model coefficients and add odds ratio for interpretability
+library(kableExtra)
+d<-broom::tidy(log_regr_hd_model$fit) %>%
+  arrange(desc(estimate)) %>% 
+  mutate(odds_ratio = exp(estimate)) 
+d%>%
+   kbl(align = rep("c", 5), digits = 5) %>%
+   kable_styling("full_width" = F)
+
+
+#Make predictions using testing set
+first_training_prediction <- predict(log_regr_hd_model, 
+                                     new_data = test_tbl, 
+                                     type     = "class")
+
+
+#Add predictions as new column in heart data set
+first_training_prediction_full_tbl <- test_processed_data %>% 
+  mutate(Predicted_Heart_Disease = first_training_prediction$.pred_class)
+#Glimpse data
+first_training_prediction_full_tbl %>% glimpse()
+
+table(first_training_prediction_full_tbl$Diagnosis_Heart_Disease, 
+first_training_prediction_full_tbl$Predicted_Heart_Disease)
+
+#Use predictions col and truth col to make a confusion matrix object
+conf_mat_obj <- first_training_prediction_full_tbl %>% 
+  conf_mat(truth    = Diagnosis_Heart_Disease, 
+           estimate = Predicted_Heart_Disease)
+#Call conf_mat and supply columns for truth, prediction
+#Pluck() to extract the conf_matrix data into cols and convert to tibble for plotting
+conf_matrix_plt_obj <- first_training_prediction_full_tbl %>% 
+  conf_mat(truth    = Diagnosis_Heart_Disease, 
+           estimate = Predicted_Heart_Disease) %>%
+  pluck(1) %>%
+  as_tibble() %>%
+  mutate("outcome" = c("true_negative",
+                       "false_positive",
+                       "false_negative",
+                       "true_positive")) 
+fix(conf_matrix_plt_obj)
+#Convert to kable format
+conf_matrix_plt_obj %>%
+   kbl(align = rep("c", 4)) %>%
+   kable_styling("full_width" = F)
+
+#Plot confusion matrix
+p1 <- conf_matrix_plt_obj %>% ggplot(aes(x = Truth, y = Prediction)) +
+  geom_tile(aes(fill = n), alpha = .8) +
+  geom_text(aes(label = n), color = "black") +
+  scale_fill_viridis_c() +
+  theme(legend.title = element_blank()) +
+  labs(
+    title    = "ConfusionMatrix",
+    subtitle = "Heart Disease Prediction Using Logistic Regression"
+  )
+   
+p1
+
+
+#Calling summary() on the confusion_matrix_obj gives all the performance measures
+#Filter to the ones we care about
+log_reg_performance_tbl <- summary(conf_mat_obj) %>% filter(
+                                 .metric == "accuracy" | 
+                                 .metric == "sens" |
+                                 .metric == "spec" |
+                                 .metric == "ppv"  |
+                                 .metric == "npv"  |
+                                 .metric == "f_meas") %>%
+  select(-.estimator) %>%
+  rename("metric" = .metric, 
+         "estimate" = .estimate) %>%
+  mutate("estimate" = estimate %>% signif(digits = 3)) %>%
+  mutate(metric = recode(metric, "sens" = "sensitivity"),
+         metric = recode(metric, "spec" = "specificity"),
+         metric = recode(metric, "ppv"  = "positive predictive value"),
+         metric = recode(metric, "npv"  = "negative predictive value")) %>%
+   kbl(align = rep("c", 3)) %>%
+   kable_styling("full_width" = F)
+  
+#Display perfomance summary as kable
+log_reg_performance_tbl
+
+set.seed(101)
+log_regr_hd_model1 <- glm(Diagnosis_Heart_Disease ~ ., data = train_processed_data,
+family="binomial")
+(or)
+first_training_prediction <- predict(log_regr_hd_model1, 
+                                     test_tbl, 
+                                     type     = "response")
+
+#ROCR Curve
+library(ROCR)
+ROCRpred <- prediction(first_training_prediction,test_processed_data$Diagnosis_Heart_Disease)
+ROCRperf <- performance(ROCRpred, 'tpr','fpr')
+plot (ROCRperf, colorize=T, main="ROC curve", ylab="Sensitivity",xlab
+="1-Specificity")
+abline (a=0,b=1)
+#Area Under the Curve (AUC)
+modelauc<-performance (ROCRpred, "auc")
+modelauc<-unlist (slot (modelauc, "y.values")) 
+legend (0.6,0.4, modelauc, title="AUC",cex=0.8) 
+
+
+decision tree
+#Initial model
+dt_fit <- rpart(Diagnosis_Heart_Disease ~ ., data = train_processed_data, method = "class")
+summary(dt_fit)
+rpart.plot(dt_fit)
+plotcp(dt_fit, upper = "splits", cex.lab = 1.5, cex.axis = 1.5, cex.main = 1.5, cex.sub = 1.5)
+first_training_prediction <- predict(dt_fit, 
+                                     new_data = test_tbl, 
+                                     type     = "class")
+
+prob <- predict(dt_fit, test_processed_data, type = "prob")
+pred <- ifelse(prob>=0.5,1,0)
+confusionMatrix(factor(pred[,2]),test_processed_data$Diagnosis_Heart_Disease)
+#ROC curve
+plot(roc(test_processed_data$Diagnosis_Heart_Disease,pred[,2]), print.auc=TRUE, 
+    cex.lab = 1.5, cex.axis = 1.5, cex.main = 1.5, cex.sub = 1.5, cex.names = 1.5)
